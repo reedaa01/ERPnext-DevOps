@@ -26,3 +26,14 @@ variable "aks_subnet_address_prefix" {
   type        = string
   default     = "10.20.0.0/22"
 }
+variable "acr_name" {
+  description = "Nom globalement unique de l'Azure Container Registry"
+  type        = string
+  default     = "acrerpnextdev"
+}
+
+variable "acr_sku" {
+  description = "SKU de l'Azure Container Registry"
+  type        = string
+  default     = "Basic"
+}

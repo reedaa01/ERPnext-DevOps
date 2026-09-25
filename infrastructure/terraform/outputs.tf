@@ -21,3 +21,7 @@ output "resource_group_id" {
   description = "ID du Resource Group Azure"
   value       = azurerm_resource_group.main.id
 }
+output "acr_login_server" {
+  description = "URL du registry ACR"
+  value       = azurerm_container_registry.main.login_server
+}
