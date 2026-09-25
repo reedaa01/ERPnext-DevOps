@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Documentation Infrastructure - ERPNext sur Azure</title>
+  <style>
+    :root {
+      --bg: #f3f7fc;
+      --ink: #16253a;
+      --muted: #5c6c84;
+      --line: #d8e3f2;
+      --card: #ffffff;
+      --brand: #0e7490;
+      --brand2: #0f766e;
+      --accent: #f59e0b;
+      --shadow: 0 14px 26px rgba(12, 34, 58, 0.12);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", "Aptos", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 0% 0%, #d7f1ff 0%, rgba(215, 241, 255, 0) 48%),
+        radial-gradient(circle at 100% 0%, #fdecc8 0%, rgba(253, 236, 200, 0) 36%),
+        linear-gradient(180deg, #f9fbfe 0%, var(--bg) 100%);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 26px 18px 44px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #0f2742 0%, #115173 48%, #0f766e 100%);
+      color: #f0f8ff;
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      animation: rise .7s ease-out;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -70px;
+      top: -70px;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    h1 { font-size: clamp(1.7rem, 3.5vw, 2.6rem); margin-bottom: 8px; }
+
+    .subtitle { max-width: 760px; color: #d6ebff; }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+    .tag {
+      border: 1px solid rgba(255,255,255,.3);
+      background: rgba(255,255,255,.14);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: .88rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+      margin-top: 20px;
+      grid-template-columns: repeat(12, 1fr);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 5px 12px rgba(12, 34, 58, 0.06);
+      padding: 20px;
+      animation: rise .7s ease-out;
+    }
+
+    .c8 { grid-column: span 8; }
+    .c6 { grid-column: span 6; }
+    .c4 { grid-column: span 4; }
+    .c12 { grid-column: span 12; }
+
+    h2 { font-size: 1.15rem; margin-bottom: 8px; color: #12314d; }
+
+    ul { list-style: none; display: grid; gap: 8px; margin-top: 10px; }
+
+    li::before { content: "▸"; color: var(--brand2); margin-right: 8px; font-weight: 700; }
+
+    .links a {
+      display: block;
+      text-decoration: none;
+      color: #0f4f77;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      background: #fbfdff;
+      transition: all .2s ease;
+    }
+
+    .links a:hover {
+      border-color: #98b9df;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(17, 63, 105, 0.09);
+    }
+
+    pre {
+      margin-top: 8px;
+      background: #10243a;
+      color: #e8f2ff;
+      border-radius: 12px;
+      border: 1px solid #274867;
+      padding: 12px;
+      overflow-x: auto;
+      font-family: Consolas, "Cascadia Code", monospace;
+      font-size: .9rem;
+    }
+
+    .note {
+      margin-top: 10px;
+      border-left: 4px solid var(--accent);
+      background: #fff8e7;
+      color: #664800;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: .93rem;
+    }
+
+    footer {
+      margin-top: 18px;
+      color: var(--muted);
+      text-align: center;
+      font-size: .9rem;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 920px) {
+      .c8, .c6, .c4, .c12 { grid-column: span 12; }
+      .hero { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <h1>Documentation Infrastructure: ERPNext sur Azure</h1>
+      <p class="subtitle">
+        Cette page centralise ce que nous avons reellement construit avec Terraform et AKS: architecture,
+        reseau, securite, et inventaire des ressources Azure.
+      </p>
+      <div class="tags">
+        <span class="tag">Terraform</span>
+        <span class="tag">AzureRM</span>
+        <span class="tag">AKS</span>
+        <span class="tag">ACR</span>
+        <span class="tag">Key Vault</span>
+        <span class="tag">RBAC</span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card c8">
+        <h2>Contenu de la documentation</h2>
+        <p>Les documents suivants decrivent l'infrastructure provisionnee et les decisions techniques associees.</p>
+        <div class="links">
+          <a href="architecture.md">architecture.md - Vue d'ensemble de l'architecture Azure cible</a>
+          <a href="terraform.md">terraform.md - Standards Terraform, state, variables, plan/apply</a>
+          <a href="networking.md">networking.md - Plan d'adressage et regles reseau</a>
+          <a href="security.md">security.md - Identites, RBAC, acces secrets</a>
+          <a href="resources.md">resources.md - Inventaire des ressources Azure</a>
+        </div>
+      </article>
+
+      <article class="card c4">
+        <h2>Scope technique</h2>
+        <ul>
+          <li>Resource Group dedie au projet ERPNext.</li>
+          <li>VNet 10.20.0.0/16 et subnet AKS 10.20.0.0/22.</li>
+          <li>Cluster AKS avec node pool systeme.</li>
+          <li>ACR, Key Vault, Log Analytics, Managed Identity.</li>
+        </ul>
+      </article>
+
+      <article class="card c6">
+        <h2>Arborescence</h2>
+        <pre>docs/
+└── infrastructure/
+    ├── README.html
+    ├── architecture.md
+    ├── terraform.md
+    ├── networking.md
+    ├── security.md
+    └── resources.md</pre>
+      </article>
+
+      <article class="card c6">
+        <h2>Usage rapide</h2>
+        <pre>cd infrastructure/terraform
+terraform init
+terraform validate
+terraform plan</pre>
+        <div class="note">
+          Important: aucun secret ne doit etre versionne. Les fichiers sensibles (tfvars, tfstate, credentials)
+          restent exclus du depot.
+        </div>
+      </article>
+
+      <article class="card c12">
+        <h2>Objectif</h2>
+        <p>
+          Avoir une base documentaire claire, partageable en equipe et exploitable en audit technique,
+          pour preparer les prochaines phases: bootstrap AKS, GitOps, deploiement ERPNext et observabilite.
+        </p>
+      </article>
+    </section>
+
+    <footer>ERPNext DevOps sur Azure - Documentation infrastructure</footer>
+  </main>
+</body>
+</html>
