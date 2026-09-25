@@ -1,0 +1,14 @@
+frappe_docker/
+
+# Terraform local artifacts and secrets
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform.tfstate.lock.info
+**/*.tfvars
+**/*.tfvars.json
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
