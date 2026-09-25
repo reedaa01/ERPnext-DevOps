@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ERPNext sur Azure - Guide DevOps</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --ink: #162338;
+      --muted: #5f6e85;
+      --brand: #0b6e4f;
+      --brand-2: #0f9d73;
+      --panel: #ffffff;
+      --line: #d7e0ec;
+      --accent: #ffb703;
+      --danger: #b42318;
+      --shadow: 0 12px 30px rgba(22, 35, 56, 0.12);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Segoe UI", "Aptos", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% -20%, #d9f3eb 0%, rgba(217, 243, 235, 0) 50%),
+        radial-gradient(circle at 100% 0%, #ffe8b3 0%, rgba(255, 232, 179, 0) 40%),
+        linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 18px 48px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #0d253f 0%, #133d63 46%, #0f6b76 100%);
+      color: #f4f9ff;
+      border-radius: 24px;
+      padding: 34px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      animation: rise 0.7s ease-out;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -90px;
+      top: -90px;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    h1 {
+      font-size: clamp(1.7rem, 3.5vw, 2.7rem);
+      margin-bottom: 10px;
+      letter-spacing: 0.4px;
+    }
+
+    .subtitle {
+      max-width: 780px;
+      color: #d2e6ff;
+      font-size: 1.02rem;
+    }
+
+    .badges {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      font-size: 0.88rem;
+    }
+
+    .grid {
+      margin-top: 22px;
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(12, 1fr);
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 4px 14px rgba(10, 30, 55, 0.06);
+      animation: rise 0.7s ease-out;
+    }
+
+    .card h2 {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      color: #0e2a44;
+    }
+
+    .card p,
+    .card li {
+      color: #2e4059;
+      font-size: 0.97rem;
+    }
+
+    .col-8 {
+      grid-column: span 8;
+    }
+
+    .col-4 {
+      grid-column: span 4;
+    }
+
+    .col-6 {
+      grid-column: span 6;
+    }
+
+    ul {
+      list-style: none;
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    ul li::before {
+      content: "▸";
+      color: var(--brand);
+      margin-right: 8px;
+      font-weight: bold;
+    }
+
+    .steps {
+      counter-reset: etape;
+      display: grid;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .step {
+      counter-increment: etape;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: #fbfdff;
+    }
+
+    .step::before {
+      content: "Etape " counter(etape) "";
+      display: inline-block;
+      font-size: 0.79rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--brand-2);
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    code,
+    pre {
+      font-family: Consolas, "Cascadia Code", monospace;
+      background: #0f2135;
+      color: #eaf4ff;
+      border-radius: 12px;
+    }
+
+    pre {
+      margin-top: 10px;
+      padding: 12px;
+      overflow-x: auto;
+      font-size: 0.89rem;
+      border: 1px solid #29415e;
+    }
+
+    .note {
+      margin-top: 12px;
+      border-left: 4px solid var(--accent);
+      background: #fff9e8;
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: #5b4304;
+      font-size: 0.93rem;
+    }
+
+    .warning {
+      border-left-color: var(--danger);
+      background: #fff3f1;
+      color: #6e1c12;
+    }
+
+    footer {
+      margin-top: 22px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .col-8,
+      .col-6,
+      .col-4 {
+        grid-column: span 12;
+      }
+
+      .hero {
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <h1>Projet DevOps: Deploiement ERPNext sur Azure</h1>
+      <p class="subtitle">
+        Ce document presente l'architecture, les prerequis et le flux CI/CD pour deployer ERPNext sur Azure
+        avec Terraform et Docker, en appliquant les bonnes pratiques de securite et d'exploitation.
+      </p>
+      <div class="badges">
+        <span class="badge">Azure</span>
+        <span class="badge">Terraform</span>
+        <span class="badge">Docker</span>
+        <span class="badge">GitHub Actions</span>
+        <span class="badge">ERPNext</span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card col-8">
+        <h2>Objectif</h2>
+        <p>
+          Industrialiser le deploiement d'ERPNext sur Microsoft Azure avec une approche Infrastructure as Code,
+          en garantissant la reproductibilite, la securite des secrets et la supervision des environnements.
+        </p>
+        <ul>
+          <li>Provisionner reseau et ressources Azure via Terraform.</li>
+          <li>Deployer ERPNext avec Docker Compose et configurations adaptees.</li>
+          <li>Automatiser build, test, plan, apply et deploiement via pipeline CI/CD.</li>
+          <li>Appliquer la segmentation des environnements (dev, staging, prod).</li>
+        </ul>
+      </article>
+
+      <article class="card col-4">
+        <h2>Arborescence utile</h2>
+        <pre>ERPNext/
+├─ frappe_docker/
+│  ├─ compose.yaml
+│  └─ overrides/
+└─ infrastructure/
+   └─ terraform/
+      ├─ main.tf
+      ├─ network.tf
+      ├─ providers.tf
+      ├─ variables.tf
+      └─ outputs.tf</pre>
+      </article>
+
+      <article class="card col-6">
+        <h2>Prerequis</h2>
+        <ul>
+          <li>Compte Azure avec abonnement actif.</li>
+          <li>Azure CLI connecte: <code>az login</code>.</li>
+          <li>Terraform installe (version compatible providers).</li>
+          <li>Docker et Docker Compose installes.</li>
+          <li>Acces GitHub pour pipeline et gestion des secrets.</li>
+        </ul>
+        <div class="note">
+          Conseil: stocker les secrets dans Azure Key Vault ou GitHub Secrets, jamais dans les fichiers suivis par Git.
+        </div>
+      </article>
+
+      <article class="card col-6">
+        <h2>Flux de deploiement</h2>
+        <div class="steps">
+          <div class="step">
+            Initialisation Terraform: <code>terraform init</code> puis validation <code>terraform plan</code>.
+          </div>
+          <div class="step">
+            Provision des ressources reseau et compute sur Azure.
+          </div>
+          <div class="step">
+            Build images et deploiement des services ERPNext avec Docker Compose.
+          </div>
+          <div class="step">
+            Verification post-deploiement (sante services, logs, tests de connectivite).
+          </div>
+        </div>
+      </article>
+
+      <article class="card col-8">
+        <h2>Exemple de commandes</h2>
+        <pre>cd infrastructure/terraform
+terraform init
+terraform fmt
+terraform validate
+terraform plan -out tfplan
+# terraform apply tfplan</pre>
+
+        <pre>cd frappe_docker
+docker compose -f compose.yaml up -d
+# Optionnel avec override:
+# docker compose -f compose.yaml -f overrides/compose.proxy.yaml up -d</pre>
+      </article>
+
+      <article class="card col-4">
+        <h2>Securite</h2>
+        <ul>
+          <li>Ignorer les fichiers sensibles: <code>*.tfvars</code>, <code>*.tfstate</code>, <code>.terraform/</code>.</li>
+          <li>Utiliser des identites managées quand possible.</li>
+          <li>Restreindre les ports avec NSG et regles minimales.</li>
+          <li>Activer journalisation et alertes Azure Monitor.</li>
+        </ul>
+        <div class="note warning">
+          Important: ne pas commiter de mots de passe, cles API ou chaines de connexion en clair.
+        </div>
+      </article>
+
+      <article class="card col-12">
+        <h2>Pipeline CI/CD recommande (resume)</h2>
+        <ul>
+          <li>Etape 1: lint + tests Terraform et scripts.</li>
+          <li>Etape 2: Terraform plan sur pull request.</li>
+          <li>Etape 3: approbation manuelle avant apply en production.</li>
+          <li>Etape 4: deploiement Docker ERPNext et checks de sante.</li>
+          <li>Etape 5: supervision continue et rollback documente.</li>
+        </ul>
+      </article>
+    </section>
+
+    <footer>
+      Documentation projet - ERPNext DevOps sur Azure
+    </footer>
+  </main>
+</body>
+</html>
