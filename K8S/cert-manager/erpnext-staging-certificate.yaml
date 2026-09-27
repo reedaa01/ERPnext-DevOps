@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: erpnext-staging-tls
+  namespace: default
+spec:
+  secretName: erpnext-staging-tls
+  issuerRef:
+    name: letsencrypt-staging
+    kind: ClusterIssuer
+  dnsNames:
+    - erp-dev.shopvelmoria.store

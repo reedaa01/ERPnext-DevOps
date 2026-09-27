@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: erpnext-production-tls
+  namespace: default
+spec:
+  secretName: erpnext-production-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - erp-dev.shopvelmoria.store
