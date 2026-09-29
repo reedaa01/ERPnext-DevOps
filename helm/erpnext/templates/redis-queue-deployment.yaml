@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.redis.queue.serviceName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: redis-queue
+{{ include "erpnext.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.redis.queue.replicas }}
+  selector:
+    matchLabels:
+      app: redis-queue
+  template:
+    metadata:
+      labels:
+        app: redis-queue
+{{ include "erpnext.labels" . | indent 8 }}
+    spec:
+      containers:
+        - name: redis
+          image: {{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}
+          ports:
+            - name: redis
+              containerPort: {{ .Values.redis.port }}
+          resources:
+{{ toYaml .Values.redis.resources | indent 12 }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.redis.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.redis.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: erpnext-config
+  namespace: default
+data:
+  DB_HOST: "mariadb"
+  DB_PORT: "3306"
+  REDIS_CACHE: "redis-cache:6379"
+  REDIS_QUEUE: "redis-queue:6379"
+  SOCKETIO_PORT: "9000"

@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: assets-build
+  namespace: default
+  labels:
+    app: assets-build
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app: assets-build
+    spec:
+      restartPolicy: Never
+
+      containers:
+        - name: assets-build
+          image: frappe/erpnext:v16.35.0
+
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              cd /home/frappe/frappe-bench
+              bench build
+
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+
+          volumeMounts:
+            - name: sites
+              mountPath: /home/frappe/frappe-bench/sites
+
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

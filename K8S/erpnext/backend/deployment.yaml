@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: default
+  labels:
+    app: backend
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: backend
+
+  template:
+    metadata:
+      labels:
+        app: backend
+
+    spec:
+      containers:
+        - name: backend
+          image: frappe/erpnext:v16.35.0
+
+          command:
+            - bench
+            - serve
+
+          envFrom:
+            - configMapRef:
+                name: erpnext-config
+
+          ports:
+            - name: http
+              containerPort: 8000
+
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+
+          volumeMounts:
+            - name: sites
+              mountPath: /home/frappe/frappe-bench/sites
+
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

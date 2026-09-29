@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: configurator
+  namespace: default
+  labels:
+    app: configurator
+spec:
+  backoffLimit: 3
+
+  template:
+    metadata:
+      labels:
+        app: configurator
+
+    spec:
+      restartPolicy: OnFailure
+
+      containers:
+        - name: configurator
+          image: frappe/erpnext:v16.35.0
+
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              mkdir -p sites
+              [ -f sites/common_site_config.json ] || echo '{}' > sites/common_site_config.json
+              ls -1 apps > sites/apps.txt
+
+              bench set-config -g db_host "$DB_HOST"
+              bench set-config -gp db_port "$DB_PORT"
+
+              bench set-config -g redis_cache "redis://$REDIS_CACHE"
+              bench set-config -g redis_queue "redis://$REDIS_QUEUE"
+              bench set-config -g redis_socketio "redis://$REDIS_QUEUE"
+
+              bench set-config -gp socketio_port "$SOCKETIO_PORT"
+
+              bench set-config -g chromium_path /usr/bin/chromium-headless-shell
+
+          envFrom:
+            - configMapRef:
+                name: erpnext-config
+
+          volumeMounts:
+            - name: sites
+              mountPath: /home/frappe/frappe-bench/sites
+
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

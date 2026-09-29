@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.frontend.service.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: frontend
+{{ include "erpnext.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+{{ include "erpnext.labels" . | indent 8 }}
+    spec:
+      containers:
+        - name: frontend
+          image: {{ include "erpnext.image" . }}
+          command:
+            - nginx-entrypoint.sh
+          env:
+            - name: BACKEND
+              value: {{ .Values.frontend.env.backend | quote }}
+            - name: SOCKETIO
+              value: {{ .Values.frontend.env.socketio | quote }}
+            - name: FRAPPE_SITE_NAME_HEADER
+              value: {{ .Values.frontend.env.frappeSiteNameHeader | quote }}
+            - name: UPSTREAM_REAL_IP_ADDRESS
+              value: {{ .Values.frontend.env.upstreamRealIpAddress | quote }}
+            - name: UPSTREAM_REAL_IP_HEADER
+              value: {{ .Values.frontend.env.upstreamRealIpHeader | quote }}
+            - name: UPSTREAM_REAL_IP_RECURSIVE
+              value: {{ .Values.frontend.env.upstreamRealIpRecursive | quote }}
+            - name: PROXY_READ_TIMEOUT
+              value: {{ .Values.frontend.env.proxyReadTimeout | quote }}
+            - name: CLIENT_MAX_BODY_SIZE
+              value: {{ .Values.frontend.env.clientMaxBodySize | quote }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.frontend.service.port }}
+          resources:
+{{ toYaml .Values.frontend.resources | indent 12 }}
+          volumeMounts:
+            - name: sites
+              mountPath: {{ include "erpnext.sitesMountPath" . }}
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

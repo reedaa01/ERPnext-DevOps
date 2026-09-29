@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.websocket.service.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: websocket
+{{ include "erpnext.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.websocket.replicas }}
+  selector:
+    matchLabels:
+      app: websocket
+  template:
+    metadata:
+      labels:
+        app: websocket
+{{ include "erpnext.labels" . | indent 8 }}
+    spec:
+      containers:
+        - name: websocket
+          image: {{ include "erpnext.image" . }}
+          command:
+            - node
+            - /home/frappe/frappe-bench/apps/frappe/socketio.js
+          ports:
+            - name: socketio
+              containerPort: {{ .Values.websocket.service.port }}
+          resources:
+{{ toYaml .Values.websocket.resources | indent 12 }}
+          volumeMounts:
+            - name: sites
+              mountPath: {{ include "erpnext.sitesMountPath" . }}
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

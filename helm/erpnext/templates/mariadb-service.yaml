@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.mariadb.service.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mariadb
+{{ include "erpnext.labels" . | indent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: mariadb
+  ports:
+    - name: mysql
+      port: {{ .Values.mariadb.service.port }}
+      targetPort: {{ .Values.mariadb.service.port }}
+      protocol: TCP

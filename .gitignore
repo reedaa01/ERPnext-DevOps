@@ -13,3 +13,6 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 mdp
+
+# Kubernetes local secrets
+K8S/erpnext/configurator/site-secret.yaml

@@ -1,0 +1,70 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: erpnext-site-init
+  namespace: default
+  labels:
+    app: erpnext-site-init
+
+spec:
+  backoffLimit: 2
+
+  template:
+    metadata:
+      labels:
+        app: erpnext-site-init
+
+    spec:
+      restartPolicy: OnFailure
+
+      containers:
+        - name: site-init
+          image: frappe/erpnext:v16.35.0
+
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              SITE_NAME="erp.localhost"
+
+              if [ -f "sites/${SITE_NAME}/site_config.json" ]; then
+                echo "Site ${SITE_NAME} already exists."
+                exit 0
+              fi
+
+              bench new-site "${SITE_NAME}" \
+                --mariadb-root-password "$MARIADB_ROOT_PASSWORD" \
+                --admin-password "$ADMIN_PASSWORD" \
+                --db-host "$DB_HOST" \
+                --db-port "$DB_PORT" \
+                --install-app erpnext
+
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: erpnext-site-secret
+                  key: mariadb-root-password
+
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: erpnext-site-secret
+                  key: admin-password
+
+            - name: DB_HOST
+              value: mariadb
+
+            - name: DB_PORT
+              value: "3306"
+
+          volumeMounts:
+            - name: sites
+              mountPath: /home/frappe/frappe-bench/sites
+
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

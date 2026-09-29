@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-queue
+  namespace: default
+  labels:
+    app: redis-queue
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: redis-queue
+
+  template:
+    metadata:
+      labels:
+        app: redis-queue
+
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+
+          ports:
+            - name: redis
+              containerPort: 6379
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 10
+            periodSeconds: 10

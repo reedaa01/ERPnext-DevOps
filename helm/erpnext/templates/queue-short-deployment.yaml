@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: queue-short
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: queue-short
+{{ include "erpnext.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.workers.short.replicas }}
+  selector:
+    matchLabels:
+      app: queue-short
+  template:
+    metadata:
+      labels:
+        app: queue-short
+{{ include "erpnext.labels" . | indent 8 }}
+    spec:
+      containers:
+        - name: worker
+          image: {{ include "erpnext.image" . }}
+          command:
+            - bench
+            - worker
+            - --queue
+            - short,default
+          envFrom:
+            - configMapRef:
+                name: erpnext-config
+          resources:
+{{ toYaml .Values.workers.resources | indent 12 }}
+          volumeMounts:
+            - name: sites
+              mountPath: {{ include "erpnext.sitesMountPath" . }}
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

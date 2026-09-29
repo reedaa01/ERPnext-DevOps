@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.backend.service.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: backend
+{{ include "erpnext.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+{{ include "erpnext.labels" . | indent 8 }}
+    spec:
+      containers:
+        - name: backend
+          image: {{ include "erpnext.image" . }}
+          command:
+            - bench
+            - serve
+          envFrom:
+            - configMapRef:
+                name: erpnext-config
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.service.port }}
+          resources:
+{{ toYaml .Values.backend.resources | indent 12 }}
+          volumeMounts:
+            - name: sites
+              mountPath: {{ include "erpnext.sitesMountPath" . }}
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

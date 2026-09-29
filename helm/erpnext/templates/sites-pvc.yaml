@@ -1,0 +1,17 @@
+{{- if .Values.sites.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sites
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: erpnext
+{{ include "erpnext.labels" . | indent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.sites.persistence.accessMode }}
+  storageClassName: {{ .Values.sites.persistence.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.sites.persistence.size }}
+{{- end }}

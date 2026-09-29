@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: queue-long
+  namespace: default
+  labels:
+    app: queue-long
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: queue-long
+
+  template:
+    metadata:
+      labels:
+        app: queue-long
+
+    spec:
+      containers:
+        - name: worker
+          image: frappe/erpnext:v16.35.0
+
+          command:
+            - bench
+            - worker
+            - --queue
+            - long,default,short
+
+          envFrom:
+            - configMapRef:
+                name: erpnext-config
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          volumeMounts:
+            - name: sites
+              mountPath: /home/frappe/frappe-bench/sites
+
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

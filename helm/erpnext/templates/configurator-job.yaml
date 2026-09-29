@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: configurator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: configurator
+{{ include "erpnext.labels" . | indent 4 }}
+spec:
+  backoffLimit: {{ .Values.jobs.configurator.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        app: configurator
+{{ include "erpnext.labels" . | indent 8 }}
+    spec:
+      restartPolicy: {{ .Values.jobs.configurator.restartPolicy }}
+      containers:
+        - name: configurator
+          image: {{ include "erpnext.image" . }}
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              mkdir -p sites
+              [ -f sites/common_site_config.json ] || echo '{}' > sites/common_site_config.json
+              ls -1 apps > sites/apps.txt
+
+              bench set-config -g db_host "$DB_HOST"
+              bench set-config -gp db_port "$DB_PORT"
+
+              bench set-config -g redis_cache "redis://$REDIS_CACHE"
+              bench set-config -g redis_queue "redis://$REDIS_QUEUE"
+              bench set-config -g redis_socketio "redis://$REDIS_QUEUE"
+
+              bench set-config -gp socketio_port "$SOCKETIO_PORT"
+
+              bench set-config -g chromium_path /usr/bin/chromium-headless-shell
+          envFrom:
+            - configMapRef:
+                name: erpnext-config
+          volumeMounts:
+            - name: sites
+              mountPath: {{ include "erpnext.sitesMountPath" . }}
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

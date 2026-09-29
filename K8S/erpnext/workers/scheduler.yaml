@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scheduler
+  namespace: default
+  labels:
+    app: scheduler
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: scheduler
+
+  template:
+    metadata:
+      labels:
+        app: scheduler
+
+    spec:
+      containers:
+        - name: scheduler
+          image: frappe/erpnext:v16.35.0
+
+          command:
+            - bench
+            - schedule
+
+          envFrom:
+            - configMapRef:
+                name: erpnext-config
+
+          volumeMounts:
+            - name: sites
+              mountPath: /home/frappe/frappe-bench/sites
+
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

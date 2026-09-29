@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scheduler
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: scheduler
+{{ include "erpnext.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.scheduler.replicas }}
+  selector:
+    matchLabels:
+      app: scheduler
+  template:
+    metadata:
+      labels:
+        app: scheduler
+{{ include "erpnext.labels" . | indent 8 }}
+    spec:
+      containers:
+        - name: scheduler
+          image: {{ include "erpnext.image" . }}
+          command:
+            - bench
+            - schedule
+          envFrom:
+            - configMapRef:
+                name: erpnext-config
+          volumeMounts:
+            - name: sites
+              mountPath: {{ include "erpnext.sitesMountPath" . }}
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

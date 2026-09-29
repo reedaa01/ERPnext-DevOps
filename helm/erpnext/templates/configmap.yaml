@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: erpnext-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: erpnext-config
+{{ include "erpnext.labels" . | indent 4 }}
+data:
+  DB_HOST: {{ .Values.erpnext.config.dbHost | quote }}
+  DB_PORT: {{ .Values.erpnext.config.dbPort | quote }}
+  REDIS_CACHE: {{ .Values.erpnext.config.redisCache | quote }}
+  REDIS_QUEUE: {{ .Values.erpnext.config.redisQueue | quote }}
+  SOCKETIO_PORT: {{ .Values.erpnext.config.socketioPort | quote }}

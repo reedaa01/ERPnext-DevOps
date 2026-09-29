@@ -1,0 +1,137 @@
+global:
+  image:
+    repository: frappe/erpnext
+    tag: v16.35.0
+
+mariadb:
+  image:
+    repository: mariadb
+    tag: "11.8"
+  service:
+    name: mariadb
+    port: 3306
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: managed-csi
+    accessMode: ReadWriteOnce
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+
+redis:
+  image:
+    repository: redis
+    tag: "7-alpine"
+  cache:
+    serviceName: redis-cache
+    replicas: 1
+  queue:
+    serviceName: redis-queue
+    replicas: 1
+  port: 6379
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+
+sites:
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: azurefile-csi
+    accessMode: ReadWriteMany
+
+erpnext:
+  siteName: erp.localhost
+  config:
+    dbHost: mariadb
+    dbPort: "3306"
+    redisCache: redis-cache:6379
+    redisQueue: redis-queue:6379
+    socketioPort: "9000"
+
+secret:
+  create: true
+  name: erpnext-site-secret
+  mariadbRootPassword: "change-me-root-password"
+  adminPassword: "change-me-admin-password"
+
+backend:
+  replicas: 1
+  service:
+    name: backend
+    port: 8000
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+
+frontend:
+  replicas: 1
+  service:
+    name: frontend
+    port: 8080
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  env:
+    backend: backend:8000
+    socketio: websocket:9000
+    frappeSiteNameHeader: "$host"
+    upstreamRealIpAddress: "127.0.0.1"
+    upstreamRealIpHeader: "X-Forwarded-For"
+    upstreamRealIpRecursive: "off"
+    proxyReadTimeout: "120"
+    clientMaxBodySize: "50m"
+
+websocket:
+  replicas: 1
+  service:
+    name: websocket
+    port: 9000
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+workers:
+  short:
+    replicas: 1
+  long:
+    replicas: 1
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+scheduler:
+  replicas: 1
+
+jobs:
+  configurator:
+    backoffLimit: 3
+    restartPolicy: OnFailure
+  siteInit:
+    backoffLimit: 2
+    restartPolicy: OnFailure
