@@ -29,6 +29,7 @@ spec:
               set -e
 
               SITE_NAME="{{ .Values.erpnext.siteName }}"
+              SITE_DIR="sites/${SITE_NAME}"
 
               echo "Waiting for MariaDB..."
 
@@ -44,7 +45,7 @@ spec:
 
               echo "MariaDB is ready."
 
-              DB_NAME="$(python -c "import json; print(json.load(open('sites/${SITE_NAME}/site_config.json'))['db_name'])" 2>/dev/null || true)"
+              DB_NAME="$(python -c "import json; print(json.load(open('${SITE_DIR}/site_config.json'))['db_name'])" 2>/dev/null || true)"
 
               if [ -n "$DB_NAME" ]; then
                 echo "Existing site configuration found."
@@ -65,9 +66,10 @@ spec:
                 fi
 
                 echo "Site configuration exists but database ${DB_NAME} does not exist."
-                echo "Removing incomplete site configuration..."
+                echo "Cleaning incomplete site directory contents..."
 
-                rm -rf "sites/${SITE_NAME}"
+                mkdir -p "$SITE_DIR"
+                find "$SITE_DIR" -mindepth 1 -depth -delete
               fi
 
               echo "Creating ERPNext site ${SITE_NAME}..."
