@@ -55,14 +55,34 @@ spec:
               
               # Compiler les assets pour tous les sites
               # bench build compile CSS/JS et crée les bundles
-              bench build --production
+              bench build --production --force
 
               echo "✓ Assets compiled successfully"
-              
-              # Lister les assets compilés
               echo ""
-              echo "Compiled assets:"
-              ls -lh sites/assets/ 2>/dev/null | grep -E "\.bundle\.(js|css)" | head -10
+              echo "Updating assets on shared volume..."
+              
+              # Supprimer les anciens symlinks qui pointent vers les répertoires locaux des conteneurs
+              rm -f sites/assets/frappe sites/assets/erpnext
+              echo "✓ Removed old symlinks"
+              echo ""
+              
+              # Copier les fichiers dist réels vers le volume partagé
+              echo "Copying CSS/JS files to shared volume..."
+              rm -rf sites/assets/frappe 2>/dev/null || true
+              mkdir -p sites/assets/frappe
+              cp -r /home/frappe/frappe-bench/apps/frappe/frappe/public/* sites/assets/frappe/
+              echo "✓ Frappe assets copied"
+              echo ""
+              
+              echo "Copying ERPNext assets..."
+              rm -rf sites/assets/erpnext 2>/dev/null || true  
+              mkdir -p sites/assets/erpnext
+              cp -r /home/frappe/frappe-bench/apps/erpnext/erpnext/public/* sites/assets/erpnext/
+              echo "✓ ERPNext assets copied"
+              echo ""
+              
+              echo "Verifying files in shared volume:"
+              find sites/assets/frappe/dist -name "login.bundle.*" -type f | head -1
 
           envFrom:
             - configMapRef:
