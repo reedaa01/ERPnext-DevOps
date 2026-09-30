@@ -7,8 +7,11 @@ metadata:
     app: erpnext-assets-build
 {{ include "erpnext.labels" . | indent 4 }}
   annotations:
-    # Sync-wave 3: Exécute APRÈS site-init (PostSync hook, wave 2)
-    # Avant le backend Deployment qui utilise les assets compilés
+    # Argo CD hook: S'exécute en PostSync (après les ressources standard)
+    # BeforeHookCreation: Supprime l'ancien Job avant d'en créer un nouveau (résout l'erreur "field is immutable")
+    # HookSucceeded: Supprime le Job après succès
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
     argocd.argoproj.io/sync-wave: "3"
 spec:
   backoffLimit: {{ .Values.jobs.assetsBuild.backoffLimit | default 3 }}
