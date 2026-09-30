@@ -1,0 +1,88 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: erpnext-assets-build
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: erpnext-assets-build
+{{ include "erpnext.labels" . | indent 4 }}
+  annotations:
+    # Sync-wave 3: Exécute APRÈS site-init (PostSync hook, wave 2)
+    # Avant le backend Deployment qui utilise les assets compilés
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  backoffLimit: {{ .Values.jobs.assetsBuild.backoffLimit | default 3 }}
+  template:
+    metadata:
+      labels:
+        app: erpnext-assets-build
+{{ include "erpnext.labels" . | indent 8 }}
+    spec:
+      restartPolicy: {{ .Values.jobs.assetsBuild.restartPolicy | default "Never" }}
+      serviceAccountName: erpnext-assets-builder
+      containers:
+        - name: assets-build
+          image: {{ include "erpnext.image" . }}
+
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              SITE_NAME="{{ .Values.erpnext.siteName }}"
+              SITE_DIR="sites/${SITE_NAME}"
+
+              echo "Waiting for site directory..."
+              
+              # Attendre que le site existe (créé par site-init-job)
+              for i in {1..60}; do
+                if [ -d "$SITE_DIR" ] && [ -f "$SITE_DIR/site_config.json" ]; then
+                  echo "✓ Site directory found: $SITE_DIR"
+                  break
+                fi
+                echo "Waiting for site initialization... ($i/60)"
+                sleep 1
+              done
+
+              if [ ! -d "$SITE_DIR" ]; then
+                echo "❌ Site directory not found after timeout"
+                exit 1
+              fi
+
+              echo "Starting asset compilation..."
+              echo "Site: $SITE_NAME"
+              
+              # Compiler les assets pour tous les sites
+              # bench build compile CSS/JS et crée les bundles
+              bench build --no-reset --minify
+
+              echo "✓ Assets compiled successfully"
+              
+              # Lister les assets compilés
+              echo ""
+              echo "Compiled assets:"
+              ls -lh sites/assets/ 2>/dev/null | grep -E "\.bundle\.(js|css)" | head -10
+
+          envFrom:
+            - configMapRef:
+                name: erpnext-config
+
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: mariadb-root-password
+
+          resources:
+{{ toYaml .Values.jobs.assetsBuild.resources | default "{}" | indent 12 }}
+
+          volumeMounts:
+            - name: sites
+              mountPath: {{ include "erpnext.sitesMountPath" . }}
+
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: sites

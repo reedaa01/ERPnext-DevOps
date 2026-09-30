@@ -65,6 +65,7 @@ secret:
   name: erpnext-site-secret
   mariadbRootPassword: "change-me-root-password"
   adminPassword: "change-me-admin-password"
+  dbPassword: "erpnext-site-password"
 
 backend:
   replicas: 1
@@ -137,6 +138,16 @@ jobs:
   siteInit:
     backoffLimit: 2
     restartPolicy: OnFailure
+  assetsBuild:
+    backoffLimit: 3
+    restartPolicy: Never
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
 
 ingress:
   enabled: true

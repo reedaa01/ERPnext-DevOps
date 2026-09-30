@@ -7,8 +7,10 @@ metadata:
     app: erpnext-site-init
 {{ include "erpnext.labels" . | indent 4 }}
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
-    argocd.argoproj.io/sync-options: Replace=true
+    # ArgoCD Sync Hook: Exécute PostSync pour initialiser/synchroniser le site
+    # Ne pas maintenir comme ressource normale pour éviter les conflits d'immutabilité
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 spec:
   backoffLimit: {{ .Values.jobs.siteInit.backoffLimit }}
   selector:
@@ -51,11 +53,13 @@ spec:
 
               echo "MariaDB is ready."
 
+              # Check if site already exists and database is accessible
               if [ -d "$SITE_DIR" ]; then
                 DB_NAME="$(python -c "import json; print(json.load(open('${SITE_DIR}/site_config.json'))['db_name'])" 2>/dev/null || true)"
+                DB_USER="$(python -c "import json; print(json.load(open('${SITE_DIR}/site_config.json')).get('db_user', ''))" 2>/dev/null || true)"
 
                 if [ -n "$DB_NAME" ]; then
-                  echo "Existing site configuration found."
+                  echo "Existing site configuration found: DB_NAME=${DB_NAME}, DB_USER=${DB_USER}"
                   echo "Checking database ${DB_NAME}..."
 
                   DB_EXISTS="$(
@@ -64,11 +68,30 @@ spec:
                       -P "$DB_PORT" \
                       -u root \
                       -p"$MARIADB_ROOT_PASSWORD" \
-                      -Nse "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='${DB_NAME}'"
+                      -Nse "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='${DB_NAME}'" 2>/dev/null || true
                   )"
 
                   if [ "$DB_EXISTS" = "$DB_NAME" ]; then
-                    echo "Site ${SITE_NAME} and database ${DB_NAME} already exist."
+                    echo "✓ Database ${DB_NAME} exists."
+                    
+                    # Synchronize database user password to match Secret
+                    if [ -n "$DB_USER" ]; then
+                      echo "Synchronizing database user ${DB_USER} password..."
+                      mariadb \
+                        -h "$DB_HOST" \
+                        -P "$DB_PORT" \
+                        -u root \
+                        -p"$MARIADB_ROOT_PASSWORD" \
+                        -e "ALTER USER '${DB_USER}'@'%' IDENTIFIED BY '${DB_PASSWORD}'; FLUSH PRIVILEGES;"
+                      
+                      echo "✓ Database user password synchronized."
+                    fi
+                    
+                    # Update site_config.json with correct password from Secret
+                    echo "Updating site_config.json with password from Secret..."
+                    python3 -c "import json, os; p=os.path.join('${SITE_DIR}','site_config.json'); c=json.load(open(p)); c['db_password']=os.environ.get('DB_PASSWORD'); json.dump(c,open(p,'w'),indent=1); print('✓ Updated')"
+                    
+                    echo "✓ Site ${SITE_NAME} and database ${DB_NAME} already synchronized."
                     exit 0
                   fi
 
@@ -109,6 +132,12 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secret.name }}
                   key: admin-password
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: db-password
 
           volumeMounts:
             - name: sites
