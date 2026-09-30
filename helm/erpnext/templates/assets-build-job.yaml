@@ -55,7 +55,7 @@ spec:
               
               # Compiler les assets pour tous les sites
               # bench build compile CSS/JS et crée les bundles
-              bench build --no-reset --minify
+              bench build --production
 
               echo "✓ Assets compiled successfully"
               
