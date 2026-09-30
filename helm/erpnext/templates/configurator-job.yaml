@@ -6,6 +6,8 @@ metadata:
   labels:
     app: configurator
 {{ include "erpnext.labels" . | indent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   backoffLimit: {{ .Values.jobs.configurator.backoffLimit }}
   template:

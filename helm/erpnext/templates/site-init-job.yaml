@@ -6,6 +6,8 @@ metadata:
   labels:
     app: erpnext-site-init
 {{ include "erpnext.labels" . | indent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   backoffLimit: {{ .Values.jobs.siteInit.backoffLimit }}
   template:
@@ -15,9 +17,11 @@ spec:
 {{ include "erpnext.labels" . | indent 8 }}
     spec:
       restartPolicy: {{ .Values.jobs.siteInit.restartPolicy }}
+
       containers:
         - name: site-init
           image: {{ include "erpnext.image" . }}
+
           command:
             - bash
             - -c
@@ -26,10 +30,47 @@ spec:
 
               SITE_NAME="{{ .Values.erpnext.siteName }}"
 
-              if [ -f "sites/${SITE_NAME}/site_config.json" ]; then
-                echo "Site ${SITE_NAME} already exists."
-                exit 0
+              echo "Waiting for MariaDB..."
+
+              until mariadb-admin \
+                -h "$DB_HOST" \
+                -P "$DB_PORT" \
+                -u root \
+                -p"$MARIADB_ROOT_PASSWORD" \
+                ping --silent; do
+                echo "MariaDB is not ready yet..."
+                sleep 5
+              done
+
+              echo "MariaDB is ready."
+
+              DB_NAME="$(python -c "import json; print(json.load(open('sites/${SITE_NAME}/site_config.json'))['db_name'])" 2>/dev/null || true)"
+
+              if [ -n "$DB_NAME" ]; then
+                echo "Existing site configuration found."
+                echo "Checking database ${DB_NAME}..."
+
+                DB_EXISTS="$(
+                  mariadb \
+                    -h "$DB_HOST" \
+                    -P "$DB_PORT" \
+                    -u root \
+                    -p"$MARIADB_ROOT_PASSWORD" \
+                    -Nse "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='${DB_NAME}'"
+                )"
+
+                if [ "$DB_EXISTS" = "$DB_NAME" ]; then
+                  echo "Site ${SITE_NAME} and database ${DB_NAME} already exist."
+                  exit 0
+                fi
+
+                echo "Site configuration exists but database ${DB_NAME} does not exist."
+                echo "Removing incomplete site configuration..."
+
+                rm -rf "sites/${SITE_NAME}"
               fi
+
+              echo "Creating ERPNext site ${SITE_NAME}..."
 
               bench new-site "${SITE_NAME}" \
                 --mariadb-root-password "$MARIADB_ROOT_PASSWORD" \
@@ -37,23 +78,30 @@ spec:
                 --db-host "$DB_HOST" \
                 --db-port "$DB_PORT" \
                 --install-app erpnext
+
+              echo "ERPNext site ${SITE_NAME} initialized successfully."
+
           envFrom:
             - configMapRef:
                 name: erpnext-config
+
           env:
             - name: MARIADB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.secret.name }}
                   key: mariadb-root-password
+
             - name: ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.secret.name }}
                   key: admin-password
+
           volumeMounts:
             - name: sites
               mountPath: {{ include "erpnext.sitesMountPath" . }}
+
       volumes:
         - name: sites
           persistentVolumeClaim:
