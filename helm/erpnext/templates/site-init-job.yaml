@@ -11,10 +11,15 @@ metadata:
     argocd.argoproj.io/sync-options: Replace=true
 spec:
   backoffLimit: {{ .Values.jobs.siteInit.backoffLimit }}
+  selector:
+    matchLabels:
+      app: erpnext-site-init
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: erpnext-site-init
+        app.kubernetes.io/instance: {{ .Release.Name }}
 {{ include "erpnext.labels" . | indent 8 }}
     spec:
       restartPolicy: {{ .Values.jobs.siteInit.restartPolicy }}
