@@ -1,3 +1,5 @@
+createNamespace: true
+
 global:
   image:
     repository: frappe/erpnext
