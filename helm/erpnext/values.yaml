@@ -137,3 +137,15 @@ jobs:
   siteInit:
     backoffLimit: 2
     restartPolicy: OnFailure
+
+ingress:
+  enabled: true
+
+  className: nginx
+
+  host: erp-dev.shopvelmoria.store
+
+  clusterIssuer: letsencrypt-production
+
+  tls:
+    secretName: erpnext-production-tls
