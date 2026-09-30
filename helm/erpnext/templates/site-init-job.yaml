@@ -8,6 +8,7 @@ metadata:
 {{ include "erpnext.labels" . | indent 4 }}
   annotations:
     argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: Replace=true
 spec:
   backoffLimit: {{ .Values.jobs.siteInit.backoffLimit }}
   template:
@@ -45,36 +46,40 @@ spec:
 
               echo "MariaDB is ready."
 
-              DB_NAME="$(python -c "import json; print(json.load(open('${SITE_DIR}/site_config.json'))['db_name'])" 2>/dev/null || true)"
+              if [ -d "$SITE_DIR" ]; then
+                DB_NAME="$(python -c "import json; print(json.load(open('${SITE_DIR}/site_config.json'))['db_name'])" 2>/dev/null || true)"
 
-              if [ -n "$DB_NAME" ]; then
-                echo "Existing site configuration found."
-                echo "Checking database ${DB_NAME}..."
+                if [ -n "$DB_NAME" ]; then
+                  echo "Existing site configuration found."
+                  echo "Checking database ${DB_NAME}..."
 
-                DB_EXISTS="$(
-                  mariadb \
-                    -h "$DB_HOST" \
-                    -P "$DB_PORT" \
-                    -u root \
-                    -p"$MARIADB_ROOT_PASSWORD" \
-                    -Nse "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='${DB_NAME}'"
-                )"
+                  DB_EXISTS="$(
+                    mariadb \
+                      -h "$DB_HOST" \
+                      -P "$DB_PORT" \
+                      -u root \
+                      -p"$MARIADB_ROOT_PASSWORD" \
+                      -Nse "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='${DB_NAME}'"
+                  )"
 
-                if [ "$DB_EXISTS" = "$DB_NAME" ]; then
-                  echo "Site ${SITE_NAME} and database ${DB_NAME} already exist."
-                  exit 0
+                  if [ "$DB_EXISTS" = "$DB_NAME" ]; then
+                    echo "Site ${SITE_NAME} and database ${DB_NAME} already exist."
+                    exit 0
+                  fi
+
+                  echo "Site configuration exists but database ${DB_NAME} does not exist."
+                else
+                  echo "Incomplete site directory found without site configuration."
                 fi
 
-                echo "Site configuration exists but database ${DB_NAME} does not exist."
                 echo "Cleaning incomplete site directory contents..."
-
-                mkdir -p "$SITE_DIR"
-                find "$SITE_DIR" -mindepth 1 -depth -delete
+                find "$SITE_DIR" -depth -delete
               fi
 
               echo "Creating ERPNext site ${SITE_NAME}..."
 
               bench new-site "${SITE_NAME}" \
+                --force \
                 --mariadb-root-password "$MARIADB_ROOT_PASSWORD" \
                 --admin-password "$ADMIN_PASSWORD" \
                 --db-host "$DB_HOST" \
