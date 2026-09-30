@@ -52,7 +52,7 @@ sites:
     accessMode: ReadWriteMany
 
 erpnext:
-  siteName: erp.localhost
+  siteName: erp-dev.shopvelmoria.store
   config:
     dbHost: mariadb
     dbPort: "3306"
