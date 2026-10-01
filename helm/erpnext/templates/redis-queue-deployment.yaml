@@ -19,13 +19,6 @@ spec:
     spec:
       containers:
         - name: redis
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
           image: {{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}
           ports:
             - name: redis

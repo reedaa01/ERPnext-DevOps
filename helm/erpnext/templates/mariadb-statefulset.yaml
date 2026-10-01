@@ -20,13 +20,6 @@ spec:
     spec:
       containers:
         - name: mariadb
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
           image: {{ .Values.mariadb.image.repository }}:{{ .Values.mariadb.image.tag }}
           ports:
             - name: mysql
