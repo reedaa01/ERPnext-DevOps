@@ -13,6 +13,7 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 mdp
-
+password.txt
 # Kubernetes local secrets
-K8S/erpnext/configurator/site-secret.yaml
+K8S/erpnext/configurator/site-secret.yamlhelm/observability/loki-rendered.yaml
+/K8S/erpnext/configurator/site-secret.yaml
