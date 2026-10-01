@@ -19,6 +19,15 @@ spec:
     spec:
       containers:
         - name: backend
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
           image: {{ include "erpnext.image" . }}
           command:
             - bench
