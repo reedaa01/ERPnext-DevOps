@@ -13,10 +13,6 @@ metadata:
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 spec:
   backoffLimit: {{ .Values.jobs.siteInit.backoffLimit }}
-  selector:
-    matchLabels:
-      app: erpnext-site-init
-      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
