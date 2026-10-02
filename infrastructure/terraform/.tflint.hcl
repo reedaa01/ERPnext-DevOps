@@ -1,7 +1,3 @@
-terraform {
-  required_version = ">= 1.0"
-}
-
 plugin "azurerm" {
   enabled = true
   version = "0.25.1"
