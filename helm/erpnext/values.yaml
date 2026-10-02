@@ -80,6 +80,11 @@ azureKeyVault:
     dbPassword:
       objectName: erpnext-db-password
       objectType: secret
+    demoRotatingSecret:
+      enabled: false
+      objectName: erpnext-demo-rotating-secret
+      objectType: secret
+      secretKey: demo-rotating-secret
 
 secret:
   create: true
@@ -178,6 +183,14 @@ ingress:
   host: erp-dev.shopvelmoria.store
 
   clusterIssuer: letsencrypt-production
+
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
+    nginx.ingress.kubernetes.io/hsts-include-subdomains: "false"
+    nginx.ingress.kubernetes.io/hsts-preload: "false"
 
   tls:
     secretName: erpnext-production-tls

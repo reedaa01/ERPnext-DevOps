@@ -18,6 +18,11 @@ azureKeyVault:
     dbPassword:
       objectName: erpnext-db-password
       objectType: secret
+    demoRotatingSecret:
+      enabled: true
+      objectName: erpnext-demo-rotating-secret
+      objectType: secret
+      secretKey: demo-rotating-secret
 
 secret:
   create: false
