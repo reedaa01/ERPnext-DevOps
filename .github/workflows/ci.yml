@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infrastructure/terraform
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.0
+          terraform_wrapper: false
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        run: terraform init -backend=false -input=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+  helm:
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.4
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add grafana-community https://grafana-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+
+      - name: Pull pinned charts
+        run: |
+          mkdir -p "${RUNNER_TEMP}/charts"
+          helm pull grafana-community/loki --version 18.13.7 --untar --untardir "${RUNNER_TEMP}/charts"
+          helm pull prometheus-community/kube-prometheus-stack --version 91.9.0 --untar --untardir "${RUNNER_TEMP}/charts"
+          helm pull grafana/alloy --version 1.13.0 --untar --untardir "${RUNNER_TEMP}/charts"
+
+      - name: Helm lint
+        run: |
+          helm lint helm/erpnext
+          helm lint "${RUNNER_TEMP}/charts/loki" -f helm/observability/loki-values.yaml
+          helm lint "${RUNNER_TEMP}/charts/kube-prometheus-stack" -f helm/observability/prometheus-values.yaml
+          helm lint "${RUNNER_TEMP}/charts/alloy" -f helm/observability/alloy-values.yaml
+
+      - name: Helm template
+        run: |
+          mkdir -p "${RUNNER_TEMP}/rendered/erpnext"
+          helm template erpnext helm/erpnext -f helm/erpnext/values.yaml --namespace erpnext > "${RUNNER_TEMP}/rendered/erpnext/erpnext.yaml"
+
+          mkdir -p "${RUNNER_TEMP}/rendered/observability"
+          helm template loki "${RUNNER_TEMP}/charts/loki" -f helm/observability/loki-values.yaml --namespace monitoring > "${RUNNER_TEMP}/rendered/observability/loki.yaml"
+          helm template kube-prometheus-stack "${RUNNER_TEMP}/charts/kube-prometheus-stack" -f helm/observability/prometheus-values.yaml --namespace monitoring > "${RUNNER_TEMP}/rendered/observability/prometheus.yaml"
+          helm template alloy "${RUNNER_TEMP}/charts/alloy" -f helm/observability/alloy-values.yaml --namespace monitoring > "${RUNNER_TEMP}/rendered/observability/alloy.yaml"
+
+  kubernetes:
+    name: Kubernetes manifests
+    runs-on: ubuntu-latest
+    needs: helm
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.32.0
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add grafana-community https://grafana-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+
+      - name: Pull pinned charts
+        run: |
+          mkdir -p "${RUNNER_TEMP}/charts"
+          helm pull grafana-community/loki --version 18.13.7 --untar --untardir "${RUNNER_TEMP}/charts"
+          helm pull prometheus-community/kube-prometheus-stack --version 91.9.0 --untar --untardir "${RUNNER_TEMP}/charts"
+          helm pull grafana/alloy --version 1.13.0 --untar --untardir "${RUNNER_TEMP}/charts"
+
+      - name: Render charts for dry-run validation
+        run: |
+          mkdir -p "${RUNNER_TEMP}/rendered/erpnext"
+          helm template erpnext helm/erpnext -f helm/erpnext/values.yaml --namespace erpnext > "${RUNNER_TEMP}/rendered/erpnext/erpnext.yaml"
+
+          mkdir -p "${RUNNER_TEMP}/rendered/observability"
+          helm template loki "${RUNNER_TEMP}/charts/loki" -f helm/observability/loki-values.yaml --namespace monitoring > "${RUNNER_TEMP}/rendered/observability/loki.yaml"
+          helm template kube-prometheus-stack "${RUNNER_TEMP}/charts/kube-prometheus-stack" -f helm/observability/prometheus-values.yaml --namespace monitoring > "${RUNNER_TEMP}/rendered/observability/prometheus.yaml"
+          helm template alloy "${RUNNER_TEMP}/charts/alloy" -f helm/observability/alloy-values.yaml --namespace monitoring > "${RUNNER_TEMP}/rendered/observability/alloy.yaml"
+
+      - name: Kubernetes dry-run validation
+        run: |
+          kubectl apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/erpnext/erpnext.yaml"
+          kubectl apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/loki.yaml"
+          kubectl apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/prometheus.yaml"
+          kubectl apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/alloy.yaml"
