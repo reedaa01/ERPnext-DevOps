@@ -85,6 +85,7 @@ jobs:
       - name: Helm lint
         run: |
           helm lint helm/erpnext
+          helm lint helm/erpnext -f helm/erpnext/values.yaml
           helm lint "${RUNNER_TEMP}/charts/loki" -f helm/observability/loki-values.yaml
           helm lint "${RUNNER_TEMP}/charts/kube-prometheus-stack" -f helm/observability/prometheus-values.yaml
           helm lint "${RUNNER_TEMP}/charts/alloy" -f helm/observability/alloy-values.yaml
@@ -306,7 +307,12 @@ jobs:
 
           trap 'if [ -f "${RUNNER_TEMP}/offline-api-server.pid" ]; then kill "$(cat "${RUNNER_TEMP}/offline-api-server.pid")" || true; fi' EXIT
 
-          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/erpnext/erpnext.yaml"
-          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/loki.yaml"
-          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/prometheus.yaml"
-          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/alloy.yaml"
+          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=true -f "${RUNNER_TEMP}/rendered/erpnext/erpnext.yaml"
+          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=true -f "${RUNNER_TEMP}/rendered/observability/loki.yaml"
+          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=true -f "${RUNNER_TEMP}/rendered/observability/prometheus.yaml"
+          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=true -f "${RUNNER_TEMP}/rendered/observability/alloy.yaml"
+
+          echo "✓ ERPNext manifests validated"
+          echo "✓ Loki manifests validated"
+          echo "✓ Prometheus manifests validated"
+          echo "✓ Alloy manifests validated"
