@@ -12,6 +12,8 @@ spec:
     path: helm/erpnext
     helm:
       releaseName: erpnext
+      valueFiles:
+        - values-lab48-keyvault.yaml
 
   destination:
     server: https://kubernetes.default.svc
