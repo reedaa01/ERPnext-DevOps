@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: erpnext-allow-site-init-egress
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "erpnext.labels" . | indent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: erpnext-site-init
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace }}
+          podSelector:
+            matchLabels:
+              app: mariadb
+      ports:
+        - protocol: TCP
+          port: 3306

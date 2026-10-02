@@ -1,0 +1,11 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: erpnext-default-deny-ingress
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "erpnext.labels" . | indent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
