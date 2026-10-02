@@ -19,6 +19,8 @@ spec:
 {{ include "erpnext.labels" . | indent 8 }}
     spec:
       restartPolicy: {{ .Values.jobs.configurator.restartPolicy }}
+      serviceAccountName: erpnext-workload
+      automountServiceAccountToken: false
       containers:
         - name: configurator
           securityContext:

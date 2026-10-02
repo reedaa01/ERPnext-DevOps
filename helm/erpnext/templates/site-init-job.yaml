@@ -21,6 +21,8 @@ spec:
 {{ include "erpnext.labels" . | indent 8 }}
     spec:
       restartPolicy: {{ .Values.jobs.siteInit.restartPolicy }}
+      serviceAccountName: erpnext-workload
+      automountServiceAccountToken: false
 
       containers:
         - name: site-init

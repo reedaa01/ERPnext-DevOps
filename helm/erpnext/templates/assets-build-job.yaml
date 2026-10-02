@@ -23,6 +23,7 @@ spec:
     spec:
       restartPolicy: {{ .Values.jobs.assetsBuild.restartPolicy | default "Never" }}
       serviceAccountName: erpnext-assets-builder
+      automountServiceAccountToken: false
       containers:
         - name: assets-build
           image: {{ include "erpnext.image" . }}

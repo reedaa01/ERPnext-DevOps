@@ -17,6 +17,8 @@ spec:
         app: queue-long
 {{ include "erpnext.labels" . | indent 8 }}
     spec:
+      serviceAccountName: erpnext-workload
+      automountServiceAccountToken: false
       containers:
         - name: worker
           securityContext:

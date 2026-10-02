@@ -17,6 +17,8 @@ spec:
         app: backend
 {{ include "erpnext.labels" . | indent 8 }}
     spec:
+      serviceAccountName: erpnext-workload
+      automountServiceAccountToken: false
       containers:
         - name: backend
           securityContext:

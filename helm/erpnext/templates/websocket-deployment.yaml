@@ -17,6 +17,8 @@ spec:
         app: websocket
 {{ include "erpnext.labels" . | indent 8 }}
     spec:
+      serviceAccountName: erpnext-workload
+      automountServiceAccountToken: false
       containers:
         - name: websocket
           securityContext:
