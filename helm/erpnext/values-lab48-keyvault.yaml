@@ -1,0 +1,23 @@
+azureKeyVault:
+  enabled: true
+  tenantId: "69fac05d-67f4-4519-8b00-e4e4e6f8162d"
+  keyVaultName: "kv-erpnext-dev"
+  managedIdentityClientId: "87810cb4-d2ed-44f7-8a6a-c87149bb2dd0"
+  serviceAccountName: erpnext-workload
+  secretProviderClassName: erpnext-keyvault
+  syncKubernetesSecret:
+    enabled: true
+    name: erpnext-site-secret
+  objects:
+    mariadbRootPassword:
+      objectName: erpnext-mariadb-root-password
+      objectType: secret
+    adminPassword:
+      objectName: erpnext-admin-password
+      objectType: secret
+    dbPassword:
+      objectName: erpnext-db-password
+      objectType: secret
+
+secret:
+  create: false

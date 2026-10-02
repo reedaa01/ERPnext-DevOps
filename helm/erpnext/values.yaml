@@ -60,6 +60,27 @@ erpnext:
     redisQueue: redis-queue:6379
     socketioPort: "9000"
 
+azureKeyVault:
+  enabled: false
+  tenantId: ""
+  keyVaultName: ""
+  managedIdentityClientId: ""
+  serviceAccountName: erpnext-workload
+  secretProviderClassName: erpnext-keyvault
+  syncKubernetesSecret:
+    enabled: true
+    name: erpnext-site-secret
+  objects:
+    mariadbRootPassword:
+      objectName: erpnext-mariadb-root-password
+      objectType: secret
+    adminPassword:
+      objectName: erpnext-admin-password
+      objectType: secret
+    dbPassword:
+      objectName: erpnext-db-password
+      objectType: secret
+
 secret:
   create: true
   name: erpnext-site-secret

@@ -15,10 +15,13 @@ spec:
     metadata:
       labels:
         app: backend
+{{- if .Values.azureKeyVault.enabled }}
+        azure.workload.identity/use: "true"
+{{- end }}
 {{ include "erpnext.labels" . | indent 8 }}
     spec:
-      serviceAccountName: erpnext-workload
-      automountServiceAccountToken: false
+      serviceAccountName: {{ .Values.azureKeyVault.serviceAccountName | default "erpnext-workload" }}
+      automountServiceAccountToken: {{ ternary true false .Values.azureKeyVault.enabled }}
       containers:
         - name: backend
           securityContext:
@@ -45,7 +48,20 @@ spec:
           volumeMounts:
             - name: sites
               mountPath: {{ include "erpnext.sitesMountPath" . }}
+{{- if .Values.azureKeyVault.enabled }}
+            - name: secrets-store
+              mountPath: /mnt/secrets-store
+              readOnly: true
+{{- end }}
       volumes:
         - name: sites
           persistentVolumeClaim:
             claimName: sites
+{{- if .Values.azureKeyVault.enabled }}
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ .Values.azureKeyVault.secretProviderClassName | quote }}
+{{- end }}
