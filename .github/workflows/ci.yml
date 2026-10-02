@@ -45,6 +45,17 @@ jobs:
       - name: Terraform validate
         run: terraform validate
 
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.54.0
+
+      - name: TFLint init
+        run: tflint --init
+
+      - name: TFLint
+        run: tflint
+
   helm:
     name: Helm
     runs-on: ubuntu-latest
