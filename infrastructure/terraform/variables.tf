@@ -53,7 +53,7 @@ variable "aks_node_count" {
 variable "aks_vm_size" {
   description = "Taille des VM du system node pool"
   type        = string
-  default     = "Standard_D4ads_v6"
+  default     = "Standard_D4s_v3"
 }
 variable "key_vault_name" {
   description = "Nom globalement unique du Key Vault"
