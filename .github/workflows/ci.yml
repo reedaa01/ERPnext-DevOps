@@ -440,13 +440,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Azure login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to ACR
+      - name: Get ACR login server
+        id: acr
         run: |
-          echo "ACR login configured via Azure Managed Identity / Federated Identity"
-          echo "Registry: $(terraform -chdir=infrastructure/terraform output -raw acr_login_server 2>/dev/null || echo 'configure in terraform')"
+          ACR_SERVER=$(terraform -chdir=infrastructure/terraform output -raw acr_login_server 2>/dev/null || echo "")
+          if [ -z "$ACR_SERVER" ]; then
+            echo "ERROR: Could not retrieve ACR login server from Terraform"
+            exit 1
+          fi
+          echo "server=${ACR_SERVER}" >> "$GITHUB_OUTPUT"
+          echo "ACR Server: ${ACR_SERVER}"
+
+      - name: Log in to Azure Container Registry
+        run: |
+          az acr login --name ${{ steps.acr.outputs.server }} --expose-token | docker login -u 00000000-0000-0000-0000-000000000000 --password-stdin ${{ steps.acr.outputs.server }}
 
       - name: Build and Push to ACR
         uses: docker/build-push-action@v5
@@ -457,6 +474,8 @@ jobs:
           tags: "${{ needs.build-image.outputs.image-tag }}"
           cache-from: type=gha
           cache-to: "type=gha,mode=max"
+          registry: "${{ steps.acr.outputs.server }}"
 
       - name: Image pushed
-        run: echo "Image pushed: ${{ needs.build-image.outputs.image-tag }}"
+        run: |
+          echo "Image pushed: ${{ needs.build-image.outputs.image-tag }} to ${{ steps.acr.outputs.server }}"

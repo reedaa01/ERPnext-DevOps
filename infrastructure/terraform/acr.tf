@@ -17,3 +17,10 @@ resource "azurerm_role_assignment" "aks_acr_pull" {
   role_definition_name = "AcrPull"
   scope                = azurerm_container_registry.main.id
 }
+
+# GitHub Actions CI/CD → AcrPush (push images to registry)
+resource "azurerm_role_assignment" "github_actions_acr_push" {
+  principal_id         = azurerm_user_assigned_identity.github_actions.principal_id
+  role_definition_name = "AcrPush"
+  scope                = azurerm_container_registry.main.id
+}

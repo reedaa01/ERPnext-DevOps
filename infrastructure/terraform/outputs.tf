@@ -65,3 +65,22 @@ output "managed_identity_principal_id" {
   description = "Principal ID de la User Assigned Managed Identity"
   value       = azurerm_user_assigned_identity.erpnext.principal_id
 }
+
+# GitHub Actions OIDC Configuration
+output "github_actions_client_id" {
+  description = "Client ID de la GitHub Actions Managed Identity (pour azure/login@v2)"
+  value       = azurerm_user_assigned_identity.github_actions.client_id
+  sensitive   = false
+}
+
+output "tenant_id" {
+  description = "Azure Tenant ID (pour AZURE_TENANT_ID GitHub Secret)"
+  value       = data.azurerm_client_config.current.tenant_id
+  sensitive   = false
+}
+
+output "subscription_id" {
+  description = "Azure Subscription ID (pour AZURE_SUBSCRIPTION_ID GitHub Secret)"
+  value       = data.azurerm_client_config.current.subscription_id
+  sensitive   = false
+}
