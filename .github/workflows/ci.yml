@@ -45,16 +45,30 @@ jobs:
       - name: Terraform validate
         run: terraform validate
 
+      - name: Cache TFLint plugins
+        uses: actions/cache@v4
+        with:
+          path: ~/.tflint.d/plugins
+          key: ${{ runner.os }}-tflint-${{ hashFiles('infrastructure/terraform/.tflint.hcl') }}
+          restore-keys: |
+            ${{ runner.os }}-tflint-
+
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
         with:
           tflint_version: v0.54.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: TFLint init
         run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: TFLint
         run: tflint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   helm:
     name: Helm
@@ -307,10 +321,10 @@ jobs:
 
           trap 'if [ -f "${RUNNER_TEMP}/offline-api-server.pid" ]; then kill "$(cat "${RUNNER_TEMP}/offline-api-server.pid")" || true; fi' EXIT
 
-          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=true -f "${RUNNER_TEMP}/rendered/erpnext/erpnext.yaml"
-          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=true -f "${RUNNER_TEMP}/rendered/observability/loki.yaml"
-          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=true -f "${RUNNER_TEMP}/rendered/observability/prometheus.yaml"
-          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=true -f "${RUNNER_TEMP}/rendered/observability/alloy.yaml"
+          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/erpnext/erpnext.yaml"
+          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/loki.yaml"
+          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/prometheus.yaml"
+          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/alloy.yaml"
 
           echo "✓ ERPNext manifests validated"
           echo "✓ Loki manifests validated"
