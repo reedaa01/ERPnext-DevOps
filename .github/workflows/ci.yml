@@ -120,6 +120,156 @@ jobs:
           helm pull prometheus-community/kube-prometheus-stack --version 91.9.0 --untar --untardir "${RUNNER_TEMP}/charts"
           helm pull grafana/alloy --version 1.13.0 --untar --untardir "${RUNNER_TEMP}/charts"
 
+      - name: Prepare offline kubeconfig and discovery server
+        run: |
+          mkdir -p "${RUNNER_TEMP}/kubeconfig"
+          cat > "${RUNNER_TEMP}/offline-api-server.py" <<'PY'
+          from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+          import json
+          from urllib.parse import urlparse
+
+          def resource(name, kind, namespaced=True):
+            return {
+              "name": name,
+              "singularName": "",
+              "namespaced": namespaced,
+              "kind": kind,
+              "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"],
+            }
+
+          api_resources = {
+            "/api/v1": {
+              "kind": "APIResourceList",
+              "apiVersion": "v1",
+              "groupVersion": "v1",
+              "resources": [
+                resource("namespaces", "Namespace", False),
+                resource("serviceaccounts", "ServiceAccount"),
+                resource("secrets", "Secret"),
+                resource("configmaps", "ConfigMap"),
+                resource("services", "Service"),
+                resource("persistentvolumeclaims", "PersistentVolumeClaim"),
+                resource("pods", "Pod"),
+              ],
+            },
+            "/apis/apps/v1": {
+              "kind": "APIResourceList",
+              "apiVersion": "v1",
+              "groupVersion": "apps/v1",
+              "resources": [
+                resource("deployments", "Deployment"),
+                resource("daemonsets", "DaemonSet"),
+                resource("statefulsets", "StatefulSet"),
+              ],
+            },
+            "/apis/batch/v1": {
+              "kind": "APIResourceList",
+              "apiVersion": "v1",
+              "groupVersion": "batch/v1",
+              "resources": [
+                resource("jobs", "Job"),
+              ],
+            },
+            "/apis/rbac.authorization.k8s.io/v1": {
+              "kind": "APIResourceList",
+              "apiVersion": "v1",
+              "groupVersion": "rbac.authorization.k8s.io/v1",
+              "resources": [
+                resource("roles", "Role"),
+                resource("rolebindings", "RoleBinding"),
+                resource("clusterroles", "ClusterRole", False),
+                resource("clusterrolebindings", "ClusterRoleBinding", False),
+              ],
+            },
+            "/apis/networking.k8s.io/v1": {
+              "kind": "APIResourceList",
+              "apiVersion": "v1",
+              "groupVersion": "networking.k8s.io/v1",
+              "resources": [
+                resource("networkpolicies", "NetworkPolicy"),
+                resource("ingresses", "Ingress"),
+              ],
+            },
+            "/apis/admissionregistration.k8s.io/v1": {
+              "kind": "APIResourceList",
+              "apiVersion": "v1",
+              "groupVersion": "admissionregistration.k8s.io/v1",
+              "resources": [
+                resource("mutatingwebhookconfigurations", "MutatingWebhookConfiguration", False),
+                resource("validatingwebhookconfigurations", "ValidatingWebhookConfiguration", False),
+              ],
+            },
+            "/apis/monitoring.coreos.com/v1": {
+              "kind": "APIResourceList",
+              "apiVersion": "v1",
+              "groupVersion": "monitoring.coreos.com/v1",
+              "resources": [
+                resource("prometheuses", "Prometheus"),
+                resource("alertmanagers", "Alertmanager"),
+                resource("prometheusrules", "PrometheusRule"),
+                resource("servicemonitors", "ServiceMonitor"),
+              ],
+            },
+          }
+
+          class Handler(BaseHTTPRequestHandler):
+            def _send_json(self, payload):
+              body = json.dumps(payload).encode("utf-8")
+              self.send_response(200)
+              self.send_header("Content-Type", "application/json")
+              self.send_header("Content-Length", str(len(body)))
+              self.end_headers()
+              self.wfile.write(body)
+
+            def do_GET(self):
+              path = urlparse(self.path).path
+              if path == "/api":
+                self._send_json({"kind": "APIVersions", "apiVersion": "v1", "versions": ["v1"], "serverAddressByClientCIDRs": []})
+              elif path == "/apis":
+                self._send_json({
+                  "kind": "APIGroupList",
+                  "apiVersion": "v1",
+                  "groups": [
+                    {"name": "apps", "versions": [{"groupVersion": "apps/v1", "version": "v1"}], "preferredVersion": {"groupVersion": "apps/v1", "version": "v1"}},
+                    {"name": "batch", "versions": [{"groupVersion": "batch/v1", "version": "v1"}], "preferredVersion": {"groupVersion": "batch/v1", "version": "v1"}},
+                    {"name": "rbac.authorization.k8s.io", "versions": [{"groupVersion": "rbac.authorization.k8s.io/v1", "version": "v1"}], "preferredVersion": {"groupVersion": "rbac.authorization.k8s.io/v1", "version": "v1"}},
+                    {"name": "networking.k8s.io", "versions": [{"groupVersion": "networking.k8s.io/v1", "version": "v1"}], "preferredVersion": {"groupVersion": "networking.k8s.io/v1", "version": "v1"}},
+                    {"name": "admissionregistration.k8s.io", "versions": [{"groupVersion": "admissionregistration.k8s.io/v1", "version": "v1"}], "preferredVersion": {"groupVersion": "admissionregistration.k8s.io/v1", "version": "v1"}},
+                    {"name": "monitoring.coreos.com", "versions": [{"groupVersion": "monitoring.coreos.com/v1", "version": "v1"}], "preferredVersion": {"groupVersion": "monitoring.coreos.com/v1", "version": "v1"}},
+                  ],
+                })
+              elif path in api_resources:
+                self._send_json(api_resources[path])
+              else:
+                self.send_response(404)
+                self.end_headers()
+
+            def log_message(self, format, *args):
+              return
+
+          ThreadingHTTPServer(("127.0.0.1", 6443), Handler).serve_forever()
+          PY
+          cat > "${RUNNER_TEMP}/kubeconfig/config" <<'EOF'
+          apiVersion: v1
+          kind: Config
+          clusters:
+            - name: offline
+              cluster:
+                server: http://127.0.0.1:6443
+          contexts:
+            - name: offline
+              context:
+                cluster: offline
+                user: offline
+          current-context: offline
+          users:
+            - name: offline
+              user: {}
+          EOF
+          python3 "${RUNNER_TEMP}/offline-api-server.py" > "${RUNNER_TEMP}/offline-api-server.log" 2>&1 &
+          echo $! > "${RUNNER_TEMP}/offline-api-server.pid"
+          trap 'kill $(cat "${RUNNER_TEMP}/offline-api-server.pid")' EXIT
+
       - name: Render charts for dry-run validation
         run: |
           mkdir -p "${RUNNER_TEMP}/rendered/erpnext"
@@ -132,7 +282,7 @@ jobs:
 
       - name: Kubernetes dry-run validation
         run: |
-          kubectl apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/erpnext/erpnext.yaml"
-          kubectl apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/loki.yaml"
-          kubectl apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/prometheus.yaml"
-          kubectl apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/alloy.yaml"
+          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/erpnext/erpnext.yaml"
+          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/loki.yaml"
+          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/prometheus.yaml"
+          kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/alloy.yaml"
