@@ -36,10 +36,10 @@ jobs:
         run: |
           if [ -f Dockerfile ]; then
             echo "dockerfile-exists=true" >> "$GITHUB_OUTPUT"
-            echo "✓ Custom Dockerfile found"
+            echo "Custom Dockerfile found"
           else
             echo "dockerfile-exists=false" >> "$GITHUB_OUTPUT"
-            echo "ℹ️  No custom Dockerfile (using official images)"
+            echo "No custom Dockerfile (using official images)"
           fi
 
   terraform:
@@ -348,10 +348,10 @@ jobs:
           kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/prometheus.yaml"
           kubectl --kubeconfig "${RUNNER_TEMP}/kubeconfig/config" apply --dry-run=client --validate=false -f "${RUNNER_TEMP}/rendered/observability/alloy.yaml"
 
-          echo "✓ ERPNext manifests validated"
-          echo "✓ Loki manifests validated"
-          echo "✓ Prometheus manifests validated"
-          echo "✓ Alloy manifests validated"
+          echo "ERPNext manifests validated"
+          echo "Loki manifests validated"
+          echo "Prometheus manifests validated"
+          echo "Alloy manifests validated"
 
   security:
     name: Trivy Security Scan
@@ -379,12 +379,9 @@ jobs:
     name: Build Custom Image
     runs-on: ubuntu-latest
     needs: [terraform, helm, kubernetes, security, check-dockerfile]
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      needs.check-dockerfile.outputs.dockerfile-exists == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-dockerfile.outputs.dockerfile-exists == 'true'
     outputs:
-      image-tag: ${{ steps.image.outputs.tag }}
+      image-tag: "${{ steps.image.outputs.tag }}"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -406,10 +403,10 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
-          tags: ${{ steps.image.outputs.tag }}
+          tags: "${{ needs.build-image.outputs.image-tag }}"
           cache-from: type=gha
-          cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/image.tar
+          cache-to: "type=gha,mode=max"
+          outputs: "type=docker,dest=/tmp/image.tar"
 
       - name: Load image for scanning
         run: docker load --input /tmp/image.tar
@@ -418,15 +415,12 @@ jobs:
     name: Scan Image
     runs-on: ubuntu-latest
     needs: [build-image, check-dockerfile]
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      needs.check-dockerfile.outputs.dockerfile-exists == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-dockerfile.outputs.dockerfile-exists == 'true'
     steps:
       - name: Run Trivy image scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ needs.build-image.outputs.image-tag }}
+          image-ref: "${{ needs.build-image.outputs.image-tag }}"
           format: 'sarif'
           output: 'trivy-image.sarif'
           severity: 'CRITICAL,HIGH'
@@ -441,10 +435,7 @@ jobs:
     name: Push to ACR
     runs-on: ubuntu-latest
     needs: [build-image, scan-image, check-dockerfile]
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      needs.check-dockerfile.outputs.dockerfile-exists == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-dockerfile.outputs.dockerfile-exists == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -454,7 +445,7 @@ jobs:
 
       - name: Log in to ACR
         run: |
-          echo "ℹ️  ACR login configured via Azure Managed Identity / Federated Identity"
+          echo "ACR login configured via Azure Managed Identity / Federated Identity"
           echo "Registry: $(terraform -chdir=infrastructure/terraform output -raw acr_login_server 2>/dev/null || echo 'configure in terraform')"
 
       - name: Build and Push to ACR
@@ -463,9 +454,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ needs.build-image.outputs.image-tag }}
+          tags: "${{ needs.build-image.outputs.image-tag }}"
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: "type=gha,mode=max"
 
       - name: Image pushed
-        run: echo "✓ Image pushed: ${{ needs.build-image.outputs.image-tag }}"
+        run: echo "Image pushed: ${{ needs.build-image.outputs.image-tag }}"
