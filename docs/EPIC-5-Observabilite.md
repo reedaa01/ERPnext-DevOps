@@ -1,48 +1,52 @@
 # EPIC 5 — Observabilité ERPNext & AKS
 
-## 1. Objectif
-Assurer la supervision continue d'ERPNext sur AKS, avec visibilité sur les métriques, les logs et les alertes. L'objectif est de détecter rapidement les dégradations (disponibilité, ressources, redémarrages, stockage) et de faciliter le diagnostic opérationnel.
+> 📊 Prometheus · Grafana · Loki · Alloy · Alertmanager
 
-## 2. Architecture
-Composants en place :
-- Prometheus : collecte des métriques.
-- Grafana : visualisation des dashboards et des logs.
-- Loki : stockage/requête des logs.
-- Alloy : collecte des logs Kubernetes et envoi vers Loki.
-- Alertmanager : réception et gestion des alertes Prometheus.
+---
 
-Schéma simplifié :
+## 01 / Objectif
 
-```text
-AKS nodes/pods
-   | metrics                    | logs
-   v                            v
-Prometheus -----------------> Alertmanager
-   |
-   v
-Grafana <-------------------- Loki <---------------- Alloy (DaemonSet)
+Superviser ERPNext sur AKS avec un socle métriques, logs et alertes exploitable en production.
+
+## 02 / Architecture
+
+```mermaid
+flowchart LR
+    K8S[Workloads Kubernetes] -->|logs| Alloy[Alloy DaemonSet]
+    Alloy --> Loki[Loki]
+    Loki --> Grafana[Grafana]
+
+    K8S -->|metrics| Prom[Prometheus]
+    Prom --> Grafana
+    Prom --> AM[Alertmanager]
 ```
 
-## 3. Prometheus
-- Installation via kube-prometheus-stack.
-- Collecte active des métriques Kubernetes (kube-state-metrics) et nodes (node-exporter).
-- Rétention configurée à 7 jours.
-- Suivi des métriques ERPNext/AKS : disponibilité des Deployments/StatefulSets, redémarrages de pods, CPU, mémoire, usage PVC.
+## 03 / Composants
 
-## 4. Grafana
-- Grafana est connecté à Prometheus pour les métriques.
-- Dashboards Kubernetes disponibles pour la lecture de l'état cluster/workloads.
-- Utilisé pour visualiser l'usage des ressources AKS et les workloads ERPNext.
-- Grafana est également connecté à Loki pour la consultation des logs applicatifs.
+| Composant | Rôle |
+|---|---|
+| Prometheus (kube-prometheus-stack) | Collecte des métriques cluster et workloads |
+| Grafana | Dashboards et exploration logs |
+| Alertmanager | Gestion des alertes Prometheus |
+| Loki | Stockage et requêtes logs |
+| Alloy | Collecte logs Kubernetes vers Loki |
+| kube-state-metrics | Exposition métriques objets Kubernetes |
+| node-exporter | Métriques nœuds |
 
-## 5. Loki & Alloy
-- Loki est déployé en mode monolithique (single binary) avec stockage filesystem.
-- Alloy est déployé en DaemonSet sur les nodes AKS.
-- Alloy découvre les pods Kubernetes, collecte leurs logs et les envoie à Loki.
-- Les logs ERPNext sont consultables depuis Grafana via la source Loki.
+## 04 / Configuration actuelle
 
-## 6. Alerting
-Règles personnalisées définies :
+| Élément | Valeur |
+|---|---|
+| Rétention Prometheus | 7 jours |
+| Loki mode | Monolithic |
+| Loki storage | filesystem |
+| Loki singleBinary replicas | 1 |
+| Loki read/write/backend | 0 / 0 / 0 |
+| Alloy mode | DaemonSet |
+
+## 05 / Alertes ERPNext et infrastructure
+
+Règles définies :
 - ERPNextDeploymentUnavailable
 - ERPNextMariaDBUnavailable
 - ERPNextPodCrashLooping
@@ -51,28 +55,21 @@ Règles personnalisées définies :
 - AKSNodeHighMemory
 - PersistentVolumeAlmostFull
 
-Pendant la validation, les règles personnalisées étaient `inactive` et `healthy`, ce qui indique qu'aucune condition anormale correspondante n'était présente.
+## 06 / Points d'exploitation
 
-Alertmanager est opérationnel et reçoit les alertes émises par Prometheus.
+- Corrélation métriques/logs depuis Grafana.
+- Couverture workloads ERPNext + signaux infra AKS.
+- Alertmanager alimenté par PrometheusRule dédiée ERPNext.
 
-## 7. Validation
-Validations réalisées sur l'implémentation actuelle :
-- Prometheus opérationnel.
-- Targets Prometheus fonctionnelles.
-- Grafana opérationnel.
-- Loki opérationnel.
-- Alloy collecte et achemine les logs.
-- Logs ERPNext visibles dans Grafana.
-- Alertmanager opérationnel.
-- Règles Prometheus chargées et saines.
-- PVC et ressources Kubernetes effectivement surveillés.
+## 07 / Limites connues
 
-## 8. Problèmes rencontrés
-Points rencontrés pendant LAB-42/LAB-43 et résolution :
-- Ressources mémoire insuffisantes avec les caches Loki : désactivation des caches non nécessaires (`chunksCache`, `resultsCache`) pour l'environnement.
-- Conflits de configuration Loki en mode monolithique (replication factor / cibles SSD) : ajustement explicite de `replication_factor` et neutralisation des replicas `read/write/backend`.
-- Adaptation de la configuration Loki/Alloy : stockage/schéma Loki explicites et pipeline Alloy aligné sur la découverte des pods Kubernetes.
-- Alertes Kubernetes par défaut liées à certains composants du control plane AKS : observées comme alertes de plateforme, et non comme erreurs ERPNext.
+- Loki en monolithique et stockage filesystem : adapté au LAB, non dimensionné pour une volumétrie élevée.
+- Les findings Trivy de configuration restent des éléments à traiter en continu.
 
-## 9. Conclusion
-L'EPIC 5 met en place une observabilité complète et exploitable pour ERPNext sur AKS : métriques, logs centralisés et alerting personnalisé. La base opérationnelle est en place, validée, et prête pour le suivi de production et l'amélioration continue.
+## 08 / Compétences
+
+- SRE fundamentals
+- Prometheus / Alertmanager
+- Loki / Alloy
+- Dashboards Grafana
+- Observabilité Kubernetes

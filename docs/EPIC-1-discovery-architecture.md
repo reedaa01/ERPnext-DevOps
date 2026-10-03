@@ -1,79 +1,63 @@
 # EPIC 1 — Discovery & Architecture
 
-**Jira :** ER-1  
-**Statut :** Terminé(e)
+> ERPNext · Frappe · Docker · mapping Kubernetes
 
-## Objectif
+---
 
-Comprendre ERPNext et concevoir l'architecture cible avant de commencer Terraform et Azure.
+## 01 / Objectif
 
-## Tâches / LABs
+Définir le modèle d'architecture ERPNext avant le provisionnement Azure et le déploiement AKS.
 
-| ID | LAB | Tâche | État |
-|---|---|---|---|
-| ER-2 | LAB-01 | Préparer l'environnement Docker | ✅ Terminé |
-| ER-3 | LAB-02 | Comprendre l'architecture Frappe / ERPNext | ✅ Terminé |
-| ER-4 | LAB-03 | Déployer et analyser ERPNext avec Docker Compose | ✅ Terminé |
-| ER-5 | LAB-04 | Installer ERPNext localement et valider son fonctionnement | ✅ Terminé |
-| ER-6 | LAB-05 | Analyser les conteneurs et les workloads ERPNext | ✅ Terminé |
-| ER-7 | LAB-06 | Analyser le réseau Docker et la communication inter-services | ✅ Terminé |
-| ER-8 | LAB-07 | Comprendre les volumes et la persistance | ✅ Terminé |
-| ER-9 | LAB-08 | Tester les redémarrages et la persistance des données | ✅ Terminé |
-| ER-10 | LAB-09 | Concevoir et documenter l'architecture ERPNext | ✅ Terminé |
+## 02 / Architecture fonctionnelle ERPNext
 
-## Résultat de l'EPIC
-
-À la fin de cette phase, tu savais expliquer :
-
-```text
-ERPNext
-   │
-   ├── Frontend
-   ├── Backend / Frappe
-   ├── Workers
-   ├── Scheduler
-   ├── WebSocket
-   │
-   ├── Redis
-   │    ├── Cache
-   │    └── Queue
-   │
-   ├── MariaDB
-   │
-   └── Sites / Files
+```mermaid
+flowchart TB
+    FE[Frontend] --> BE[Backend Frappe]
+    WS[WebSocket] --> BE
+    SCH[Scheduler] --> BE
+    QS[Queue Short] --> BE
+    QL[Queue Long] --> BE
+    BE --> DB[(MariaDB)]
+    BE --> RC[(Redis Cache)]
+    BE --> RQ[(Redis Queue)]
+    BE --> SITES[(Sites / Assets)]
 ```
 
-Et surtout, tu as fait le mapping vers Kubernetes :
+## 03 / Composants clés
 
-```text
-Docker                         Kubernetes
-────────────────────────────────────────────
-Container          →           Pod
-Service            →           Service
-Volume             →           PV/PVC
-Docker network     →           Kubernetes Network
-Service DNS        →           Kubernetes DNS
-Compose            →           Kubernetes/Helm
-```
+| Domaine | Composant | Rôle |
+|---|---|---|
+| Application | Frontend | Exposition web ERPNext |
+| Application | Backend Frappe | API et logique applicative |
+| Application | WebSocket | Temps réel |
+| Exécution | Scheduler | Planification des jobs |
+| Exécution | queue-short / queue-long | Exécution asynchrone |
+| Data | MariaDB | Base transactionnelle |
+| Data | Redis cache / queue | Cache et broker de tâches |
+| Stockage | Sites | Données partagées applicatives |
 
-## Document produit
+## 04 / Mapping Docker vers Kubernetes
 
-La phase doit laisser derrière elle une documentation d'architecture contenant :
+| Docker | Kubernetes |
+|---|---|
+| Container | Pod |
+| Compose service | Deployment / StatefulSet |
+| Volume | PV / PVC |
+| Docker network | CNI + Services |
+| DNS Compose | CoreDNS |
 
-- architecture ERPNext ;
-- composants ;
-- flux réseau ;
-- stockage ;
-- composants stateful/stateless ;
-- dépendances ;
-- mapping Docker → Kubernetes ;
-- architecture cible AKS.
+## 05 / Cibles techniques préparées
 
-## Livrable attendu
+- Découpage stateful/stateless.
+- Dépendances inter-services ERPNext.
+- Exigences stockage persistant (DB, sites/assets).
+- Exposition HTTP/HTTPS via Ingress.
+- Trajectoire GitOps pour les déploiements.
 
-Une documentation technique claire et exploitable pour la suite du projet, notamment pour les phases suivantes :
+## 06 / Compétences
 
-- Terraform / Azure infrastructure
-- Bootstrap AKS
-- GitOps
-- Déploiement ERPNext sur Kubernetes
+- Architecture ERPNext/Frappe
+- Docker Compose
+- Modélisation Kubernetes
+- Cartographie réseau et persistance
+- Préparation migration vers AKS

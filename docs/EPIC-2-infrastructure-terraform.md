@@ -1,86 +1,70 @@
 # EPIC 2 — Infrastructure as Code / Terraform
 
-**Jira :** ER-11  
-**Statut :** Terminé(e)
+> Azure · Terraform · AKS foundation
 
-## Objectif
+---
 
-Construire toute l'infrastructure Azure nécessaire au projet ERPNext avec Terraform, de manière reproductible et sans configuration manuelle dans le portail Azure.
+## 01 / Objectif
 
-## Tâches / LABs
+Provisionner la base Azure du projet avec Terraform, de façon reproductible et versionnée.
 
-| ID | LAB | Tâche | État |
-|---|---|---|---|
-| ER-12 | LAB-10 | Préparer le projet Terraform | ✅ Terminé |
-| ER-13 | LAB-11 | Créer le Resource Group Azure | ✅ Terminé |
-| ER-14 | LAB-12 | Concevoir et créer le réseau Azure | ✅ Terminé |
-| ER-15 | LAB-13 | Configurer les NSG | ✅ Terminé |
-| ER-16 | LAB-14 | Créer Azure Container Registry | ✅ Terminé |
-| ER-17 | LAB-15 | Créer le cluster AKS | ✅ Terminé |
-| ER-18 | LAB-16 | Ajouter Key Vault, Log Analytics et Managed Identity | ✅ Terminé |
-| ER-19 | LAB-17 | Valider et documenter l'infrastructure Terraform | ✅ Terminé |
+## 02 / Périmètre infrastructure
 
-## Infrastructure construite
+| Domaine | Ressources |
+|---|---|
+| Core | Resource Group |
+| Réseau | VNet, subnet AKS, NSG, règles HTTP/HTTPS |
+| Kubernetes | Cluster AKS (OIDC + Workload Identity activés) |
+| Registry | Azure Container Registry (ACR) |
+| Sécurité | Key Vault, Managed Identity, Federated Identity Credential |
+| Monitoring | Log Analytics Workspace |
 
-```text
-Azure
-│
-├── Resource Group
-│
-├── VNet 10.20.0.0/16
-│   └── AKS Subnet 10.20.0.0/22
-│       └── NSG
-│
-├── Azure Container Registry
-│
-├── AKS
-│   └── 2 × System Nodes
-│
-├── Key Vault
-│
-├── Log Analytics Workspace
-│
-└── Managed Identity
+## 03 / Topologie Azure
+
+```mermaid
+flowchart TB
+    RG[Resource Group] --> VNET[VNet 10.20.0.0/16]
+    VNET --> SUBNET[Subnet AKS 10.20.0.0/22]
+    SUBNET --> NSG[NSG + règles 80/443]
+    RG --> AKS[AKS]
+    RG --> ACR[ACR]
+    RG --> KV[Key Vault]
+    RG --> LAW[Log Analytics]
+    RG --> UAMI[User Assigned Managed Identity]
+    UAMI --> FIC[Federated Identity Credential]
+    AKS --> OIDC[OIDC issuer]
 ```
 
-## Compétences acquises
+## 04 / Paramètres principaux
 
-- Terraform providers
-- Variables et outputs
-- Terraform State
-- `terraform init`
-- `terraform fmt`
-- `terraform validate`
-- `terraform plan`
-- `terraform apply`
-- Azure Resource Group
-- VNet / Subnet
-- NSG et règles réseau
-- ACR
+| Paramètre | Valeur actuelle |
+|---|---|
+| Région | westeurope |
+| Version AKS | 1.36.3 |
+| Node pool system | 2 x Standard_D4s_v3 |
+| SKU ACR | Basic |
+| Rétention Log Analytics | 30 jours |
+
+## 05 / Sorties Terraform utiles
+
+- resource_group_name
+- acr_login_server
+- aks_name
+- aks_oidc_issuer_url
+- key_vault_name
+- managed_identity_client_id
+
+## 06 / Points d'architecture
+
+- Terraform couvre exclusivement l'infrastructure Azure.
+- Le déploiement applicatif Kubernetes est géré séparément par Helm + Argo CD.
+- ACR est provisionné dans la plateforme, indépendamment de la stratégie d'image runtime ERPNext.
+
+## 07 / Compétences
+
+- Terraform AzureRM
+- Networking Azure
 - AKS
-- Managed Identity
-- RBAC Azure
+- Managed Identity / OIDC
 - Key Vault
-- Log Analytics
-- intégration AKS ↔ ACR
-- infrastructure déclarative et reproductible
-
-## Principe appliqué
-
-```text
-Terraform
-    │
-    ▼
-Azure Resources
-    │
-    ├── Networking
-    ├── Security
-    ├── Registry
-    ├── Kubernetes
-    ├── Identity
-    └── Monitoring
-```
-
-## Livrable attendu
-
-La phase doit avoir produit une base Azure fonctionnelle, versionnée en code Terraform, prête à recevoir le bootstrap AKS et les composants de runtime ERPNext.
+- Infrastructure as Code

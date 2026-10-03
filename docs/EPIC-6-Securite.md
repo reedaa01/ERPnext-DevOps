@@ -1,76 +1,63 @@
-# EPIC 6 — Sécurité
+# EPIC 6 — Sécurité Kubernetes & Azure
 
-## Objectif
-Sécuriser l'environnement ERPNext Kubernetes sur AKS à travers plusieurs mécanismes de sécurité Kubernetes et Azure.
+> 🔐 PSS · RBAC · NetworkPolicies · Key Vault · Workload Identity
 
-## Travaux réalisés
+---
 
-### LAB-45 — Pod Security Standards
-- SecurityContext appliqué aux workloads ERPNext.
-- `runAsNonRoot` activé.
-- UID `1000` pour les workloads Frappe.
-- `allowPrivilegeEscalation: false`.
-- Capabilities avec `drop: ALL`.
-- `seccompProfile: RuntimeDefault`.
-- Audit/Warn PSS appliqués sur le namespace.
+## 01 / Objectif
 
-MariaDB et Redis ont nécessité une configuration différente afin de préserver leur fonctionnement.
+Réduire la surface d'exposition d'ERPNext sur AKS au niveau runtime, identité, secrets et transport.
 
-### LAB-46 — RBAC
-- ServiceAccount dédié `erpnext-workload`.
-- Role namespaced.
-- RoleBinding.
-- Principe du least privilege.
-- Accès limité aux ressources strictement nécessaires.
+## 02 / Contrôles implémentés
 
-### LAB-47 — Network Policies
-- Default deny ingress.
-- Default deny egress.
-- Règles explicites entre frontend, backend, MariaDB, Redis, workers, websocket et DNS.
-- Segmentation des communications ERPNext.
+| Domaine | Implémentation |
+|---|---|
+| Pod hardening | runAsNonRoot, runAsUser=1000, allowPrivilegeEscalation=false, drop ALL, seccomp RuntimeDefault |
+| Pod Security Standards | Mode audit/warn sur namespace applicatif |
+| RBAC | ServiceAccount dédiée + Role/RoleBinding namespaced |
+| Réseau | Default deny ingress/egress + politiques ciblées ERPNext |
+| Identité cloud | AKS Workload Identity + OIDC + Managed Identity |
+| Secrets | Key Vault + Secrets Store CSI Driver + SecretProviderClass |
+| Transport | HTTPS, cert-manager, Let's Encrypt, redirection HTTP→HTTPS, HSTS |
 
-> Les NetworkPolicies ont été implémentées et validées au niveau Kubernetes/GitOps. L'environnement AKS utilisé pour ce lab ne disposait pas d'un dataplane assurant leur enforcement effectif.
-
-### LAB-48 — Azure Key Vault & Managed Identity
-- Azure Key Vault intégré.
-- User Assigned Managed Identity utilisée.
-- AKS Workload Identity activé.
-- OIDC configuré.
-- Federated Credential mise en place.
-- ServiceAccount Kubernetes utilisé pour l'identité workload.
-- Secrets Store CSI Driver intégré.
-- Aucun credential Azure statique dans les Pods.
-
-### LAB-49 — HTTPS & Secret Rotation
-- HTTPS via NGINX Ingress.
-- cert-manager intégré.
-- Let's Encrypt utilisé pour les certificats.
-- Redirection HTTP → HTTPS.
-- HSTS configuré.
-- Secret de démonstration stocké dans Azure Key Vault.
-- SecretProviderClass utilisé pour la récupération des secrets.
-- CSI Driver utilisé pour le montage/synchronisation des secrets.
-- Rotation du secret démontrée sans exposition de sa valeur.
-- Aucun mot de passe MariaDB réel modifié.
-
-## Architecture de sécurité
+## 03 / Flux identité et secrets
 
 ```mermaid
 flowchart TD
-    Internet --> HTTPS
-    HTTPS --> Ingress[NGINX Ingress]
-    Ingress --> ERPNext[ERPNext]
-
-    ERPNext --> PSS[Pod Security Standards]
-    ERPNext --> RBAC[RBAC]
-    ERPNext --> NP[Network Policies]
-
-    ERPNext --> WI[Workload Identity]
-    WI --> MI[Managed Identity]
+    Pod --> SA[ServiceAccount]
+    SA --> OIDC[OIDC Workload Identity]
+    OIDC --> FIC[Federated Identity Credential]
+    FIC --> MI[Managed Identity]
     MI --> KV[Azure Key Vault]
     KV --> CSI[Secrets Store CSI Driver]
-    CSI --> ERPNext
+    CSI --> Pod
 ```
 
-## Conclusion
-L'EPIC 6 a permis d'établir une base sécurité cohérente pour ERPNext sur AKS, en combinant durcissement Kubernetes (PSS, RBAC, segmentation réseau), gestion d'identité cloud-native (Workload Identity) et gestion sécurisée des secrets (Key Vault + CSI), complétée par un plan HTTPS opérationnel et la démonstration de rotation de secret.
+## 04 / Implémentation Kubernetes
+
+- ServiceAccount erpnext-workload.
+- Annotation Workload Identity côté ServiceAccount.
+- SecretProviderClass Azure conditionnel côté chart Helm.
+- Montages CSI secrets-store activables via values Key Vault.
+- Règles NetworkPolicy dédiées : frontend, backend, mariadb, redis, workers, websocket, DNS.
+
+## 05 / HTTPS
+
+- Ingress class nginx.
+- ClusterIssuer Let's Encrypt.
+- Certificat TLS dédié au domaine applicatif.
+- En-têtes HSTS configurés côté annotations Ingress.
+
+## 06 / Limites connues
+
+- Les politiques réseau sont déclarées et versionnées.
+- L'enforcement effectif NetworkPolicy n'est pas démontré dans le dataplane réseau actuel du LAB.
+
+## 07 / Compétences
+
+- Kubernetes hardening
+- RBAC
+- Workload Identity
+- Key Vault + CSI Driver
+- Sécurité réseau Kubernetes
+- TLS Kubernetes
