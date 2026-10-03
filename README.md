@@ -16,7 +16,7 @@
 	<span style="color:#00C2FF;"><b>Projet</b></span> Cloud/DevOps pour déployer ERPNext sur Azure Kubernetes Service avec un modèle GitOps.
 </p>
 
-<img width="1536" height="1024" alt="Architecture ERPNext DevOps sur Azure" src="https://github.com/user-attachments/assets/6718fed0-6db6-42bf-9192-cdfd955e459e" />
+
 
 
 ## Cost (LAB)
