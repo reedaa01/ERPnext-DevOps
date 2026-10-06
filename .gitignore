@@ -14,7 +14,10 @@ override.tf.json
 *_override.tf.json
 mdp
 password.txt
-
+/ERPNext presentaion/
+/ERPNext presentaion/**
+/ERPNext Azure/**
+/ERPNext/ERPNext.mp4
 /helm/observability/loki-rendered.yaml
 # Kubernetes local secrets
 /helm/observability/loki-rendered.yaml

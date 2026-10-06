@@ -23,7 +23,7 @@
 
 | Scope | Période | Coût réel (USD) | Prévision (USD) |
 |---|---|---:|---:|
-| Rida Guila | Sep 1 - Oct 28, 2026 | 60.46 | 246.21 |
+| Rida  | Sep 1 - Oct 28, 2026 | 60.46 | 246.21 |
 
 _Source: Azure Cost Analysis (vue Custom)._ 
 
